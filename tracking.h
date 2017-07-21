@@ -13,6 +13,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/core.hpp>
+//#include <opencv2.imgproc.hpp>
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -25,6 +26,9 @@ void calcDif(int x, int y,const cv::Mat &weight,double gx, double gy, cv::Mat &o
 vector<double> findDispVec(int x0, int y0, int x1, int y1);
 Point trackEyeCenter(Mat eyeROI);
 
+
+//vector<Vec3f> houghTrack(Mat eyeROI);
+void  houghTrack(Mat eyeROI, Point &center, double &radius);
 
 //cv::Mat matrixMagnitude(const cv::Mat &matX, const cv::Mat &matY);
 #endif /* defined(____tracking__) */

@@ -40,73 +40,86 @@ int main( int argc, const char** argv )
     capture.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
 
     // If camera opened successfully
-    if( capture.isOpened() )
+    if( ! capture.isOpened() ) return -1;
+//    {
+    while( true )
     {
-        while( true )
+        // Capture the frame
+        capture >> frame;
+
+        if( !frame.empty() )
         {
-            // Capture the frame
-            capture >> frame;
+            std::vector<cv::Rect> faces;
+            std::vector<Rect> eyes;
+            std::vector<cv::Mat> rgbChannels(3);
+            cv::split(frame, rgbChannels);
+            cv::Mat frame_gray = rgbChannels[2];
 
-            if( !frame.empty() )
+            // Use haar cascade to detect potential faces
+            face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE|CV_HAAR_FIND_BIGGEST_OBJECT, cv::Size(150, 150) );
+
+
+            Mat faceROI;
+            vector<Rect> actualEyes;
+            if(faces.size() > 0)
             {
-                std::vector<cv::Rect> faces;
-                std::vector<Rect> eyes;
-                std::vector<cv::Mat> rgbChannels(3);
-                cv::split(frame, rgbChannels);
-                cv::Mat frame_gray = rgbChannels[2];
+                // Use the first face, apply gaussian blur to reduce noise, then detect eyes
+                faceROI = frame_gray(faces[0]);
+                GaussianBlur(faceROI, faceROI, Size(0,0), faceROI.cols * 0.005);
+                eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(40, 40) );
 
-                // Use haar cascade to detect potential faces
-                face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE|CV_HAAR_FIND_BIGGEST_OBJECT, cv::Size(150, 150) );
+                std::vector<Rect> smallerEyes;
 
-
-                Mat faceROI;
-                vector<Rect> actualEyes;
-                if(faces.size() > 0)
+                // Go through potential eyes
+                for(int i = 0; i < eyes.size(); i++)
                 {
-                    // Use the first face, apply gaussian blur to reduce noise, then detect eyes
-                    faceROI = frame_gray(faces[0]);
-                    GaussianBlur(faceROI, faceROI, Size(0,0), faceROI.cols * 0.005);
-                    eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(40, 40) );
-
-                    std::vector<Rect> smallerEyes;
-
-                    // Go through potential eyes
-                    for(int i = 0; i < eyes.size(); i++)
+                    // If the top left corner of the "eye" is below 0.4 of the face, then it is definitely
+                    //not an eye, remove
+                    if(eyes[i].y > faceROI.rows * 0.4)
                     {
-                        // If the top left corner of the "eye" is below 0.4 of the face, then it is definitely
-                        //not an eye, remove
-                        if(eyes[i].y > faceROI.rows * 0.4)
-                        {
-                            continue;
-                        }
-
-                        // Create a smaller rectangle for more accurate eye center detection
-                        actualEyes.push_back(eyes[i]);
-                        Rect smallEye(eyes[i].x + eyes[i].width * 0.05, eyes[i].y + eyes[i].height * 0.15, 0.9 * eyes[i].width, 0.7 * eyes[i].height);
-                        Mat eyeROI = faceROI(smallEye);
-                        eyes[i] = smallEye;
-
-                        // Get the center point using trackEyeCenter method, then change it to be in context of the whole frame.
-                        Point center = trackEyeCenter(eyeROI);
-                        Point faceCenter = Point(faces[0].x + eyes[i].x + center.x, faces[0].y + eyes[i].y + center.y);
-                        circle(frame, faceCenter, 1.5, Scalar(0, 0, 250), 1, 8, 0);
-                        
+                        continue;
                     }
 
+                    // Create a smaller rectangle for more accurate eye center detection
+                    actualEyes.push_back(eyes[i]);
+                    Rect smallEye(eyes[i].x + eyes[i].width * 0.05, eyes[i].y + eyes[i].height * 0.15, 0.9 * eyes[i].width, 0.7 * eyes[i].height);
+                    Mat eyeROI = faceROI(smallEye);
+                    eyes[i] = smallEye;
+
+                    // Get the center point using trackEyeCenter method, then change it to be in context of the whole frame.
+                    Point center = trackEyeCenter(eyeROI);
+                    Point faceCenter = Point(faces[0].x + eyes[i].x + center.x, faces[0].y + eyes[i].y + center.y);
+//                    circle(frame, faceCenter, 1.5, Scalar(0, 0, 250), 1, 8, 0);
+
+                    Point avgCenter(faceCenter.x, faceCenter.y);
+
+                    Point Contourcenter(0,0);
+                    double radius = 0;
+                    houghTrack(eyeROI, center, radius);
+
+                    if(center.x > 0 || center.y > 0)
+                    {
+                        Point adjustedCenter(center.x + eyes[i].x + faces[0].x, center.y + eyes[i].y + faces[0].y);
+//                        circle(frame, adjustedCenter, radius, Scalar(0,255,0), 1, 8 ,0);
+                        circle(frame, adjustedCenter, 1, Scalar(0,0,255), 1, 8 ,0);
+                        avgCenter.x = (faceCenter.x + adjustedCenter.x) / 2;
+                        avgCenter.y= (faceCenter.y + adjustedCenter.y) / 2;
+                    }
+//                    circle(frame, avgCenter, 1, Scalar(0,255,255), 1, 8 ,0);
                 }
-
-                // Display the detected face, eyes, and eye center
-                if(!faces.empty()) display(frame, faces[0], actualEyes);
-                else imshow(window_name, frame);
-
             }
-            else
-            { printf(" --(!) No captured frame -- Break!"); break; }
+            // Display the detected face, eyes, and eye center
+            if(!faces.empty()) display(frame, faces[0], actualEyes);
+            else imshow(window_name, frame);
 
-            int c = waitKey(1);
-            if( (char)c == 'c' ) { imwrite("debug.jpg", frame); }
         }
+        else
+        { printf(" --(!) No captured frame -- Break!"); break; }
+
+        int c = waitKey(1);
+        if( (char)c == 'c' ) { imwrite("debug.jpg", frame); }
     }
+//    }
 
     return 0;
 }

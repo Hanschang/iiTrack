@@ -178,7 +178,62 @@ Point trackEyeCenter(Mat eyeROI)
     return center;
 }
 
+//vector<Vec3f> houghTrack(Mat eyeROI)
+void houghTrack(Mat eyeROI, Point &center, double &MaxR)
+{
+    std::cout << "eye width: " << eyeROI.cols << std::endl;
+    vector<vector<Point>> contours;
+    vector<Vec4i> hierarchy;
+    imshow("eyeROI", eyeROI);
+    Mat thresh(eyeROI.cols, eyeROI.rows, CV_64F);
 
+    threshold(eyeROI, thresh, 26, 255, THRESH_BINARY);
+    imshow("threshhold", thresh);
+
+    Mat element = getStructuringElement( MORPH_RECT, Size( 5,5 ) );
+    morphologyEx(thresh, thresh, MORPH_OPEN, element);
+    imshow("opened", thresh);
+
+
+    findContours(thresh, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+
+    std::cout << contours.size() << std::endl;
+
+    Point2f centre;
+    float radius;
+    int maxIndex = -1;
+    int maxRadius = 0;
+    Point maxCentre;
+    for(int i = 0 ; i < contours.size(); i++)
+    {
+        vector<Point> closed_contour;
+        approxPolyDP(contours[i], closed_contour, 3, true);
+        minEnclosingCircle(closed_contour, centre, radius);
+        if(radius > 0.5 * eyeROI.rows) continue;
+        if(radius > maxRadius)
+        {
+            maxCentre = centre;
+            maxIndex = i;
+            maxRadius = radius;
+        }
+//        double cArea = contourArea(contours[i]);
+//        if(cArea > 0.7 * size) continue;
+//        std::cout << "Drawing contour " << i << std::endl;
+    }
+    if(maxIndex == -1) return;
+
+//    drawContours(Original, contours, maxIndex, Scalar(255,0,0), 1, 8);
+//    circle(Original, maxCentre, maxRadius, Scalar(0,0,255), 1, 8, 0);
+//    std::cout << "contour " << maxIndex << "   ---   Radius: " << maxRadius << std::endl;
+//    circle(Original, maxCentre, 1, Scalar(0,255,0), 1, 8, 0);
+//    line(Original, maxCentre, Point(centre.x + maxRadius, centre.y), Scalar(0,0,255),1,8,0);
+
+//    imshow("contours", Original);
+    MaxR = maxRadius;
+    center = maxCentre;
+
+//    return circles;
+}
 
 
 
