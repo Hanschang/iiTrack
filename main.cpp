@@ -89,21 +89,26 @@ int main( int argc, const char** argv )
                     // Get the center point using trackEyeCenter method, then change it to be in context of the whole frame.
                     Point center = trackEyeCenter(eyeROI);
                     Point faceCenter = Point(faces[0].x + eyes[i].x + center.x, faces[0].y + eyes[i].y + center.y);
-//                    circle(frame, faceCenter, 1.5, Scalar(0, 0, 250), 1, 8, 0);
+                    std::cout << "Gradient method: (" << faceCenter.x << "," << faceCenter.y << ")" << std::endl;
+                    circle(frame, faceCenter, 1.5, Scalar(0, 255, 0), 1, 8, 0);
 
                     Point avgCenter(faceCenter.x, faceCenter.y);
 
                     Point Contourcenter(0,0);
                     double radius = 0;
-                    houghTrack(eyeROI, center, radius);
+                    houghTrack(eyeROI, Contourcenter, radius, 26);
 
-                    if(center.x > 0 || center.y > 0)
+                    if(Contourcenter.x > 0 || Contourcenter.y > 0)
                     {
-                        Point adjustedCenter(center.x + eyes[i].x + faces[0].x, center.y + eyes[i].y + faces[0].y);
+                        Point adjustedCenter(Contourcenter.x + eyes[i].x + faces[0].x, Contourcenter.y + eyes[i].y + faces[0].y);
+                        std::cout << "Contour method: (" << adjustedCenter.x << "," << adjustedCenter.y << ")" << std::endl;
 //                        circle(frame, adjustedCenter, radius, Scalar(0,255,0), 1, 8 ,0);
                         circle(frame, adjustedCenter, 1, Scalar(0,0,255), 1, 8 ,0);
                         avgCenter.x = (faceCenter.x + adjustedCenter.x) / 2;
                         avgCenter.y= (faceCenter.y + adjustedCenter.y) / 2;
+                    }
+                    else{
+                        std::cout << "Cannot detect using adjusted method" << std::endl;
                     }
 //                    circle(frame, avgCenter, 1, Scalar(0,255,255), 1, 8 ,0);
                 }

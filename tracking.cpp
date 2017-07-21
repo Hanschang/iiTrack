@@ -179,25 +179,25 @@ Point trackEyeCenter(Mat eyeROI)
 }
 
 //vector<Vec3f> houghTrack(Mat eyeROI)
-void houghTrack(Mat eyeROI, Point &center, double &MaxR)
+void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh)
 {
-    std::cout << "eye width: " << eyeROI.cols << std::endl;
+//    std::cout << "eye width: " << eyeROI.cols << std::endl;
     vector<vector<Point>> contours;
     vector<Vec4i> hierarchy;
     imshow("eyeROI", eyeROI);
     Mat thresh(eyeROI.cols, eyeROI.rows, CV_64F);
 
-    threshold(eyeROI, thresh, 26, 255, THRESH_BINARY);
-    imshow("threshhold", thresh);
+    threshold(eyeROI, thresh, minThresh, 255, THRESH_BINARY);
+//    imshow("threshhold", thresh);
 
     Mat element = getStructuringElement( MORPH_RECT, Size( 5,5 ) );
     morphologyEx(thresh, thresh, MORPH_OPEN, element);
-    imshow("opened", thresh);
+//    imshow("opened", thresh);
 
 
     findContours(thresh, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 
-    std::cout << contours.size() << std::endl;
+//    std::cout << contours.size() << std::endl;
 
     Point2f centre;
     float radius;
