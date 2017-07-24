@@ -1,4 +1,4 @@
-## eyeTrack
+# eyeTrack
 
 An OpenCV project that uses webcam to detect and track eye movement.
 
@@ -17,6 +17,14 @@ using this [IEEE publication](http://ieeexplore.ieee.org/xpls/icp.jsp?arnumber=7
 This method first use threshold to isolate the darkest parts of the eye (the iris), find the contour around the region, and find the minimally enclosing circle as well as its center. 
 
 Through testing, I found this method to be more stable and accurate than the Gradient method, however it might be unable to find the center under very dark lighting
+
+## Main.cpp
+Opens up the default webcam on the computer/laptop. You can toggle different tracking methods (gradient, contour, or the average of the two), set file directories, and toggle debugging mode, in constants.h
+
+**normal mode: ** Continuously capture and process frames. User can pause anytime by pressing the key 'c', and any key to unpause
+
+**debugging mode: ** Only captures single frame at a time by pressing any key on the keyboard. User can save the current frame and all its underlying processing images by pressing the key 'c'.  
+
 
 ## Testing.cpp
 

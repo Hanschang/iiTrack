@@ -17,15 +17,10 @@ void display(Mat frame, Rect face, vector<Rect> eyes);
 void testFace(int imgID, int minThresh);
 
 /** Global variables */
-String face_cascade_name = "../../eyeTrack/haarcascade/haarcascade_frontalface_alt.xml";
-String eyes_cascade_name = "../../eyeTrack/haarcascade/haarcascade_eye_tree_eyeglasses.xml";
 CascadeClassifier face_cascade;
 CascadeClassifier eyes_cascade;
 string window_name = "Capture - Face detection";
 bool debugging = 1;
-
-// Change this to your own BioID directory
-string dir = "BioID-FaceDatabase-V1.2/";
 
 /** @function main */
 int main( int argc, const char** argv )
@@ -75,7 +70,7 @@ void testFace(int imgID, int minThresh)
 
     // Initialize videocapture and the frame it reads into
 //    VideoCapture capture(0);
-    string fileName = dir + "BioID_" + to_string(imgID);
+    string fileName = Biodir + "BioID_" + to_string(imgID);
     Mat frame = imread(fileName + ".pgm");
 
     string buffer;
@@ -145,7 +140,7 @@ void testFace(int imgID, int minThresh)
 
                 Point Contourcenter;
                 double radius = 0;
-                houghTrack(eyeROI, Contourcenter, radius, minThresh, 1);
+                houghTrack(eyeROI, Contourcenter, radius, minThresh, 1, i);
 
                 if(Contourcenter.x > 0 || Contourcenter.y > 0)
                 {

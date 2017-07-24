@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdio.h>
 #include "tracking.h"
+#include "constants.h"
 
 using namespace std;
 using namespace cv;
@@ -12,16 +13,10 @@ using namespace cv;
 void display(Mat frame, Rect face, vector<Rect> eyes);
 
 /** Global variables */
-String face_cascade_name = "../../eyeTrack/haarcascade/haarcascade_frontalface_alt.xml";
-String eyes_cascade_name = "../../eyeTrack/haarcascade/haarcascade_eye_tree_eyeglasses.xml";
 CascadeClassifier face_cascade;
 CascadeClassifier eyes_cascade;
 string window_name = "Capture - Face detection";
 
-bool kCalcGradient = 0;
-bool kCalcContour = 1;
-bool kCalcAverage = 0;
-bool kShowGradient = 0;
 
 /** @function main */
 int main( int argc, const char** argv )
@@ -47,8 +42,10 @@ int main( int argc, const char** argv )
 //    {
     while( true )
     {
+
         // Capture the frame
         capture >> frame;
+        if(kDebugging) imwrite(debugDir + "capture.jpg", frame);
 
         if( !frame.empty() )
         {
@@ -68,7 +65,11 @@ int main( int argc, const char** argv )
             {
                 // Use the first face, apply gaussian blur to reduce noise, then detect eyes
                 faceROI = frame_gray(faces[0]);
+                if(kDebugging) imwrite(debugDir + "face.jpg", faceROI);
+
                 GaussianBlur(faceROI, faceROI, Size(0,0), faceROI.cols * 0.005);
+                if(kDebugging) imwrite(debugDir + "faceGaussian.jpg", faceROI);
+
                 eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(40, 40) );
 
                 // Go through potential eyes
@@ -87,6 +88,8 @@ int main( int argc, const char** argv )
                     eyes[i] = smallEye;
                     actualEyes.push_back(smallEye);
 
+                    if(kDebugging) imwrite(debugDir + "eye" + to_string(i) + ".jpg", eyeROI);
+
                     // Get the center point using trackEyeCenter method, then change it to be in context of the whole frame.
                     Point faceCenter;
                     if(kCalcGradient | kCalcAverage)
@@ -100,17 +103,27 @@ int main( int argc, const char** argv )
                     if(kCalcContour | kCalcAverage)
                     {
                         double radius = 0;
-                        houghTrack(eyeROI, Contourcenter, radius, NULL, 0);
+                        houghTrack(eyeROI, Contourcenter, radius, NULL, 0, i);
 
                         if(Contourcenter.x > 0 || Contourcenter.y > 0)
                         {
+                            if(kDebugging)
+                            {
+                                Mat coloredFace = frame(faces[0]);
+                                Mat coloredEye = coloredFace(eyes[i]);
+                                Mat debugEye;
+                                coloredEye.copyTo(debugEye);
+                                circle(debugEye, Contourcenter, 1, Scalar(0,0,255), 1, 8, 0);
+                                circle(debugEye, Contourcenter, radius, Scalar(0,0,255), 1, 8, 0);
+                                imwrite(debugDir + "eyeResult" + to_string(i) + ".jpg", debugEye);
+                            }
 
                             Contourcenter.x  = Contourcenter.x + eyes[i].x + faces[0].x;
                             Contourcenter.y = Contourcenter.y + eyes[i].y + faces[0].y;
                             //                        std::cout << "Contour method: (" << adjustedCenter.x << "," << adjustedCenter.y << ")" << std::endl;
                             //                        circle(frame, adjustedCenter, radius, Scalar(0,255,0), 1, 8 ,0);
                             circle(frame, Contourcenter, 1, Scalar(0,0,255), 1, 8 ,0);
-                            if(kShowGradient)
+                            if(kShowOutline)
                             {
                                 circle(frame, Contourcenter, radius, Scalar(0,0,255), 1, 8, 0);
                             }
@@ -137,8 +150,16 @@ int main( int argc, const char** argv )
         else
         { printf(" --(!) No captured frame -- Break!"); break; }
 
-        int c = waitKey(1);
-        if( (char)c == 'c' ) { imwrite("debug.jpg", frame); }
+        if(kDebugging)
+        {
+            int c = waitKey(0);
+            if((char)c == 'c') {imwrite(debugDir + "frame.jpg", frame); waitKey(0); }
+        }
+        else
+        {
+            int c = waitKey(1);
+            if((char)c == 'c') waitKey(0);
+        }
     }
 
     return 0;
