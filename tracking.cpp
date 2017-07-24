@@ -179,28 +179,27 @@ Point trackEyeCenter(Mat eyeROI)
 }
 
 //vector<Vec3f> houghTrack(Mat eyeROI)
-void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool manual)
+void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool manual, int eyeNum)
 {
-//    std::cout << "eye width: " << eyeROI.cols << std::endl;
+    if(eyeNum > 1) return;
+
+    Mat combined;
+    Mat thresh(eyeROI.cols, eyeROI.rows, CV_64F);
     vector<vector<Point>> contours;
     vector<Vec4i> hierarchy;
-    imshow("eyeROI", eyeROI);
-    Mat thresh(eyeROI.cols, eyeROI.rows, CV_64F);
 
     // Calculate the mean intensity of the eyeROI
     //set threshold value to half of that
     Scalar eyeMean = mean(eyeROI);
-    int threshhold = eyeMean[0] * 0.5;
+    int threshhold = eyeMean[0] * kTreshFactor;
 
     threshold(eyeROI, thresh, threshhold, 255, THRESH_BINARY);
-//    threshold(eyeROI, thresh, minThresh, 255, THRESH_BINARY);
-
-    imshow("threshhold", thresh);
+    hconcat(eyeROI, thresh, combined);
 
     Mat element = getStructuringElement( MORPH_RECT, Size( 5,5 ) );
     morphologyEx(thresh, thresh, MORPH_OPEN, element);
-    imshow("opened", thresh);
-
+    morphologyEx(thresh, thresh, MORPH_CLOSE, element);
+    hconcat(combined, thresh, combined);
 
     findContours(thresh, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 
@@ -225,17 +224,25 @@ void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool man
     }
     if(maxIndex == -1) return;
 
-//    drawContours(Original, contours, maxIndex, Scalar(255,0,0), 1, 8);
-//    circle(Original, maxCentre, maxRadius, Scalar(0,0,255), 1, 8, 0);
-//    std::cout << "contour " << maxIndex << "   ---   Radius: " << maxRadius << std::endl;
-//    circle(Original, maxCentre, 1, Scalar(0,255,0), 1, 8, 0);
-//    line(Original, maxCentre, Point(centre.x + maxRadius, centre.y), Scalar(0,0,255),1,8,0);
+    Mat contourEye;
+    eyeROI.copyTo(contourEye);
+    drawContours(contourEye, contours, maxIndex, Scalar(255,255,255), 1, 8);
+    hconcat(combined, contourEye, combined);
+    circle(contourEye, maxCentre, maxRadius, Scalar(255,255,255), 1, 8, 0);
+    hconcat(combined, contourEye, combined);
+    circle(eyeROI, maxCentre, maxRadius, Scalar(255,255,255), 1, 8, 0);
+    circle(eyeROI, maxCentre, 1, Scalar(255,255,255), 1, 8, 0);
+    hconcat(combined, eyeROI, combined);
 
-//    imshow("contours", Original);
+    imshow("eye " + to_string(eyeNum), combined);
+    if(kDebugging)
+    {
+        imwrite("processEye" + to_string(eyeNum) + ".jpg", combined);
+    }
+
     MaxR = maxRadius;
     center = maxCentre;
 
-//    return circles;
 }
 
 
