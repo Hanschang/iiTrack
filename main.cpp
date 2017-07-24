@@ -1,7 +1,6 @@
 #include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-
 #include <iostream>
 #include <stdio.h>
 #include "tracking.h"
@@ -10,7 +9,6 @@ using namespace std;
 using namespace cv;
 
 /** Function Headers */
-void detectAndDisplay( Mat frame);
 void display(Mat frame, Rect face, vector<Rect> eyes);
 
 /** Global variables */
@@ -19,11 +17,11 @@ String eyes_cascade_name = "../../eyeTrack/haarcascade/haarcascade_eye_tree_eyeg
 CascadeClassifier face_cascade;
 CascadeClassifier eyes_cascade;
 string window_name = "Capture - Face detection";
-string imgName = "";
 
 bool kCalcGradient = 0;
 bool kCalcContour = 1;
 bool kCalcAverage = 0;
+bool kShowGradient = 0;
 
 /** @function main */
 int main( int argc, const char** argv )
@@ -112,6 +110,10 @@ int main( int argc, const char** argv )
                             //                        std::cout << "Contour method: (" << adjustedCenter.x << "," << adjustedCenter.y << ")" << std::endl;
                             //                        circle(frame, adjustedCenter, radius, Scalar(0,255,0), 1, 8 ,0);
                             circle(frame, Contourcenter, 1, Scalar(0,0,255), 1, 8 ,0);
+                            if(kShowGradient)
+                            {
+                                circle(frame, Contourcenter, radius, Scalar(0,0,255), 1, 8, 0);
+                            }
                         }
                     }
 
