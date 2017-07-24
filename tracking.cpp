@@ -179,7 +179,7 @@ Point trackEyeCenter(Mat eyeROI)
 }
 
 //vector<Vec3f> houghTrack(Mat eyeROI)
-void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh)
+void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool manual)
 {
 //    std::cout << "eye width: " << eyeROI.cols << std::endl;
     vector<vector<Point>> contours;
@@ -187,17 +187,22 @@ void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh)
     imshow("eyeROI", eyeROI);
     Mat thresh(eyeROI.cols, eyeROI.rows, CV_64F);
 
-    threshold(eyeROI, thresh, minThresh, 255, THRESH_BINARY);
-//    imshow("threshhold", thresh);
+    // Calculate the mean intensity of the eyeROI
+    //set threshold value to half of that
+    Scalar eyeMean = mean(eyeROI);
+    int threshhold = eyeMean[0] * 0.5;
+
+    threshold(eyeROI, thresh, threshhold, 255, THRESH_BINARY);
+//    threshold(eyeROI, thresh, minThresh, 255, THRESH_BINARY);
+
+    imshow("threshhold", thresh);
 
     Mat element = getStructuringElement( MORPH_RECT, Size( 5,5 ) );
     morphologyEx(thresh, thresh, MORPH_OPEN, element);
-//    imshow("opened", thresh);
+    imshow("opened", thresh);
 
 
     findContours(thresh, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
-
-//    std::cout << contours.size() << std::endl;
 
     Point2f centre;
     float radius;
@@ -216,9 +221,7 @@ void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh)
             maxIndex = i;
             maxRadius = radius;
         }
-//        double cArea = contourArea(contours[i]);
-//        if(cArea > 0.7 * size) continue;
-//        std::cout << "Drawing contour " << i << std::endl;
+
     }
     if(maxIndex == -1) return;
 

@@ -28,7 +28,7 @@ Point trackEyeCenter(Mat eyeROI);
 
 
 //vector<Vec3f> houghTrack(Mat eyeROI);
-void  houghTrack(Mat eyeROI, Point &center, double &radius, int minThresh);
+void  houghTrack(Mat eyeROI, Point &center, double &radius, int minThresh, bool manual);
 
 //cv::Mat matrixMagnitude(const cv::Mat &matX, const cv::Mat &matY);
 #endif /* defined(____tracking__) */

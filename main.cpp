@@ -19,8 +19,11 @@ String eyes_cascade_name = "../../eyeTrack/haarcascade/haarcascade_eye_tree_eyeg
 CascadeClassifier face_cascade;
 CascadeClassifier eyes_cascade;
 string window_name = "Capture - Face detection";
-bool debugging = 1;
 string imgName = "";
+
+bool kCalcGradient = 0;
+bool kCalcContour = 1;
+bool kCalcAverage = 0;
 
 /** @function main */
 int main( int argc, const char** argv )
@@ -38,6 +41,8 @@ int main( int argc, const char** argv )
     //(will slow down the program)
     capture.set(CV_CAP_PROP_FRAME_WIDTH, 640);
     capture.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+
+    namedWindow(window_name,1);
 
     // If camera opened successfully
     if( ! capture.isOpened() ) return -1;
@@ -68,8 +73,6 @@ int main( int argc, const char** argv )
                 GaussianBlur(faceROI, faceROI, Size(0,0), faceROI.cols * 0.005);
                 eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(40, 40) );
 
-                std::vector<Rect> smallerEyes;
-
                 // Go through potential eyes
                 for(int i = 0; i < eyes.size(); i++)
                 {
@@ -81,36 +84,47 @@ int main( int argc, const char** argv )
                     }
 
                     // Create a smaller rectangle for more accurate eye center detection
-                    actualEyes.push_back(eyes[i]);
                     Rect smallEye(eyes[i].x + eyes[i].width * 0.05, eyes[i].y + eyes[i].height * 0.15, 0.9 * eyes[i].width, 0.7 * eyes[i].height);
                     Mat eyeROI = faceROI(smallEye);
                     eyes[i] = smallEye;
+                    actualEyes.push_back(smallEye);
 
                     // Get the center point using trackEyeCenter method, then change it to be in context of the whole frame.
-                    Point center = trackEyeCenter(eyeROI);
-                    Point faceCenter = Point(faces[0].x + eyes[i].x + center.x, faces[0].y + eyes[i].y + center.y);
-                    std::cout << "Gradient method: (" << faceCenter.x << "," << faceCenter.y << ")" << std::endl;
-                    circle(frame, faceCenter, 1.5, Scalar(0, 255, 0), 1, 8, 0);
-
-                    Point avgCenter(faceCenter.x, faceCenter.y);
+                    Point faceCenter;
+                    if(kCalcGradient | kCalcAverage)
+                    {
+                        Point center = trackEyeCenter(eyeROI);
+                        faceCenter = Point(faces[0].x + eyes[i].x + center.x, faces[0].y + eyes[i].y + center.y);
+                        circle(frame, faceCenter, 1.5, Scalar(0, 255, 0), 1, 8, 0);
+                    }
 
                     Point Contourcenter(0,0);
-                    double radius = 0;
-                    houghTrack(eyeROI, Contourcenter, radius, 26);
-
-                    if(Contourcenter.x > 0 || Contourcenter.y > 0)
+                    if(kCalcContour | kCalcAverage)
                     {
-                        Point adjustedCenter(Contourcenter.x + eyes[i].x + faces[0].x, Contourcenter.y + eyes[i].y + faces[0].y);
-                        std::cout << "Contour method: (" << adjustedCenter.x << "," << adjustedCenter.y << ")" << std::endl;
-//                        circle(frame, adjustedCenter, radius, Scalar(0,255,0), 1, 8 ,0);
-                        circle(frame, adjustedCenter, 1, Scalar(0,0,255), 1, 8 ,0);
-                        avgCenter.x = (faceCenter.x + adjustedCenter.x) / 2;
-                        avgCenter.y= (faceCenter.y + adjustedCenter.y) / 2;
+                        double radius = 0;
+                        houghTrack(eyeROI, Contourcenter, radius, NULL, 0);
+
+                        if(Contourcenter.x > 0 || Contourcenter.y > 0)
+                        {
+
+                            Contourcenter.x  = Contourcenter.x + eyes[i].x + faces[0].x;
+                            Contourcenter.y = Contourcenter.y + eyes[i].y + faces[0].y;
+                            //                        std::cout << "Contour method: (" << adjustedCenter.x << "," << adjustedCenter.y << ")" << std::endl;
+                            //                        circle(frame, adjustedCenter, radius, Scalar(0,255,0), 1, 8 ,0);
+                            circle(frame, Contourcenter, 1, Scalar(0,0,255), 1, 8 ,0);
+                        }
                     }
-                    else{
-                        std::cout << "Cannot detect using adjusted method" << std::endl;
+
+                    if(kCalcAverage)
+                    {
+                        Point avgCenter(faceCenter.x, faceCenter.y);
+                        if(Contourcenter.x > 0 || Contourcenter.y > 0)
+                        {
+                            avgCenter.x = (faceCenter.x + Contourcenter.x) / 2;
+                            avgCenter.y= (faceCenter.y + Contourcenter.y) / 2;
+                        }
+                        circle(frame, avgCenter, 1, Scalar(0,255,255), 1, 8 ,0);
                     }
-//                    circle(frame, avgCenter, 1, Scalar(0,255,255), 1, 8 ,0);
                 }
             }
             // Display the detected face, eyes, and eye center
@@ -124,7 +138,6 @@ int main( int argc, const char** argv )
         int c = waitKey(1);
         if( (char)c == 'c' ) { imwrite("debug.jpg", frame); }
     }
-//    }
 
     return 0;
 }
@@ -151,66 +164,3 @@ void display(Mat frame, Rect face, vector<Rect> eyes)
     imshow(window_name, frame);
 }
 
-
-
-/** @function detectAndDisplay */
-void detectAndDisplay( Mat frame)
-{
-    // Create a gray version of the frame. Also keep an original version for debugging
-    std::vector<Rect> faces;
-    Mat frame_gray;
-    Mat debugFrame;
-    frame.copyTo(debugFrame);
-    cvtColor( frame, frame_gray, CV_BGR2GRAY );
-    equalizeHist( frame_gray, frame_gray );
-
-    //-- Detect faces
-    face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
-
-    // Go through all the detected faces
-    for( size_t i = 0; i < faces.size(); i++ )
-    {
-        // turn the face region into Mat
-        Mat faceROI = frame_gray( faces[i] );
-        Mat debugFace = debugFrame(faces[i]);
-
-        // Get the bottom left and top right corner of the face, draw it on the frame
-        Point BLFace(faces[i].x, faces[i].y);
-        Point TRFace(faces[i].x + faces[i].width, faces[i].y + faces[i].height);
-        rectangle(frame, BLFace, TRFace, Scalar(255,0,0), 1, 8, 0);
-
-        // Vector to hold the eyes
-        std::vector<Rect> eyes;
-
-        //-- In each face, detect eyes
-        eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(30, 30) );
-
-        // Go through all the detected eyes
-        for( size_t j = 0; j < eyes.size(); j++ )
-        {
-            Point bottomLeft(faces[i].x + eyes[j].x, faces[i].y + eyes[j].y);
-            Point topRight(faces[i].x + eyes[j].x + eyes[j].width, faces[i].y + eyes[j].y + eyes[j].height);
-
-            // Draw the rectangle around the eye, and add a point in the center
-            rectangle(frame, bottomLeft, topRight, Scalar(255, 0, 0), 1, 8, 0);
-
-
-            // Get the eye image using the eyes vector
-            Mat grayEye = faceROI(eyes[j]);
-            Mat debugEye = debugFace(eyes[j]);
-
-            // Showing the processed image
-            string eyeNum = "debugImg/" + imgName + "/eye"+ to_string(j);
-            imshow(eyeNum , debugEye );
-            imwrite(eyeNum + "G.jpg", grayEye);
-            if(debugging) imwrite(eyeNum + ".jpg", debugEye);
-
-            rectangle(debugFrame, bottomLeft, topRight, Scalar(255, 0, 0), 1, 8, 0);
-        }
-        imshow("face", debugFace);
-        if(debugging) imwrite("debugImg/" + imgName + "/debugFace.jpg", debugFace);
-    }
-
-    imshow( window_name, frame );
-    if(debugging) imwrite("debugImg/" + imgName +"/frame.jpg", frame);
-}
