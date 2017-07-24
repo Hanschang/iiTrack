@@ -77,10 +77,8 @@ int main( int argc, const char** argv )
                 {
                     // If the top left corner of the "eye" is below 0.4 of the face, then it is definitely
                     //not an eye, remove
-                    if(eyes[i].y > faceROI.rows * 0.4)
-                    {
-                        continue;
-                    }
+                    if(eyes[i].y > faceROI.rows * 0.4) continue;
+                    if(i > 1) continue;
 
                     // Create a smaller rectangle for more accurate eye center detection
                     Rect smallEye(eyes[i].x + eyes[i].width * 0.05, eyes[i].y + eyes[i].height * 0.15, 0.9 * eyes[i].width, 0.7 * eyes[i].height);
@@ -152,8 +150,8 @@ int main( int argc, const char** argv )
 
         if(kDebugging)
         {
-            int c = waitKey(0);
-            if((char)c == 'c') {imwrite(debugDir + "frame.jpg", frame); waitKey(0); }
+            imwrite(debugDir + "frame.jpg", frame);
+            waitKey(0);
         }
         else
         {

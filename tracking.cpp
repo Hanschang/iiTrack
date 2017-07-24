@@ -237,7 +237,7 @@ void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool man
     imshow("eye " + to_string(eyeNum), combined);
     if(kDebugging)
     {
-        imwrite("processEye" + to_string(eyeNum) + ".jpg", combined);
+        imwrite(debugDir + "processEye" + to_string(eyeNum) + ".jpg", combined);
     }
 
     MaxR = maxRadius;
