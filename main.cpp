@@ -3,8 +3,9 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
 #include <stdio.h>
-#include "tracking.h"
+#include "centerTracking.h"
 #include "constants.h"
+#include "cornerTracking.h"
 
 using namespace std;
 using namespace cv;
@@ -32,8 +33,11 @@ int main( int argc, const char** argv )
 
     // For 480p, comment out the below lines for 720p video
     //(will slow down the program)
-    capture.set(CV_CAP_PROP_FRAME_WIDTH, 640);
-    capture.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+    if(!kisHighDef)
+    {
+        capture.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+        capture.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+    }
 
     namedWindow(window_name,1);
 
@@ -42,7 +46,6 @@ int main( int argc, const char** argv )
 //    {
     while( true )
     {
-
         // Capture the frame
         capture >> frame;
         if(kDebugging) imwrite(debugDir + "capture.jpg", frame);
@@ -67,26 +70,40 @@ int main( int argc, const char** argv )
                 faceROI = frame_gray(faces[0]);
                 if(kDebugging) imwrite(debugDir + "face.jpg", faceROI);
 
-                GaussianBlur(faceROI, faceROI, Size(0,0), faceROI.cols * 0.005);
-                if(kDebugging) imwrite(debugDir + "faceGaussian.jpg", faceROI);
+                if(!kTrackCorner)
+                {
+                    GaussianBlur(faceROI, faceROI, Size(0,0), faceROI.cols * 0.005);
+                    if(kDebugging) imwrite(debugDir + "faceGaussian.jpg", faceROI);
+                }
+
 
                 eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(40, 40) );
 
+//                std::cout << eyes.size() << std::endl;
                 // Go through potential eyes
                 for(int i = 0; i < eyes.size(); i++)
                 {
                     // If the top left corner of the "eye" is below 0.4 of the face, then it is definitely
                     //not an eye, remove
                     if(eyes[i].y > faceROI.rows * 0.4) continue;
-                    if(i > 1) continue;
+                    if(i > 1) break;
 
                     // Create a smaller rectangle for more accurate eye center detection
                     Rect smallEye(eyes[i].x + eyes[i].width * 0.05, eyes[i].y + eyes[i].height * 0.15, 0.9 * eyes[i].width, 0.7 * eyes[i].height);
                     Mat eyeROI = faceROI(smallEye);
-                    eyes[i] = smallEye;
+                    Mat bigEyeROI = faceROI(eyes[i]);
+
                     actualEyes.push_back(smallEye);
 
                     if(kDebugging) imwrite(debugDir + "eye" + to_string(i) + ".jpg", eyeROI);
+
+                    // Corner tracking function
+                    if(kTrackCorner)
+                    {
+                        cornerTrack(bigEyeROI);
+                    }
+
+                    eyes[i] = smallEye;
 
                     // Get the center point using trackEyeCenter method, then change it to be in context of the whole frame.
                     Point faceCenter;
@@ -118,8 +135,7 @@ int main( int argc, const char** argv )
 
                             Contourcenter.x  = Contourcenter.x + eyes[i].x + faces[0].x;
                             Contourcenter.y = Contourcenter.y + eyes[i].y + faces[0].y;
-                            //                        std::cout << "Contour method: (" << adjustedCenter.x << "," << adjustedCenter.y << ")" << std::endl;
-                            //                        circle(frame, adjustedCenter, radius, Scalar(0,255,0), 1, 8 ,0);
+
                             circle(frame, Contourcenter, 1, Scalar(0,0,255), 1, 8 ,0);
                             if(kShowOutline)
                             {
@@ -148,6 +164,7 @@ int main( int argc, const char** argv )
         else
         { printf(" --(!) No captured frame -- Break!"); break; }
 
+        // Pause or continue with capture depending on mode
         if(kDebugging)
         {
             imwrite(debugDir + "frame.jpg", frame);

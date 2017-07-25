@@ -14,15 +14,21 @@
 
 // Toggle for tracking methods
 const bool kCalcGradient = 0;
-const bool kCalcContour = 1;
+const bool kCalcContour = 0;
 const bool kCalcAverage = 0;
 const bool kShowOutline = 0;
 
+// Toggle for corner tracking
+const bool kTrackCorner = 1;
+
 // Contant used to determine the minimum threshold value
-const double kTreshFactor = 0.48;
+const double kTreshFactor = 0.6;
 
 // Set to true if debugging
 const bool kDebugging = 1;
+
+// Set to 1 for HD, Set to 0 for SD
+const bool kisHighDef = 0;
 
 // Change this to your own BioID directory
 const std::string Biodir = "BioID-FaceDatabase-V1.2/";
