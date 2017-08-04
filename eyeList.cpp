@@ -35,7 +35,7 @@ void eyeList::addProcessImage(Mat processImage, int index)
 {
     if (index >= size_ || index < 0) return;
 
-    processImages_.push_back(processImage);
+    processImages_[index] = processImage;
 }
 
 int eyeList::getX(int index)
@@ -53,6 +53,23 @@ int eyeList::getY(int index)
     Rect eye = eyeRegion_[index];
     return eye.y;
 
+}
+
+int eyeList::getWidth(int index)
+{
+    if (index >= size_ || index < 0) return -1;
+
+    Rect eye = eyeRegion_[index];
+    return eye.width;
+
+}
+
+int eyeList::getHeight(int index)
+{
+    if (index >= size_ || index < 0) return -1;
+
+    Rect eye = eyeRegion_[index];
+    return eye.height;
 }
 
 Mat eyeList::getROI(int index)

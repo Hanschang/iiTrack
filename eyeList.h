@@ -27,6 +27,8 @@ public:
 
     int getX(int index);
     int getY(int index);
+    int getWidth(int index);
+    int getHeight(int index);
     Mat getROI(int index);
     Mat getProcessImage(int index);
     int getSize();

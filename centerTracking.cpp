@@ -170,9 +170,11 @@ Point gradientTrack(Mat eyeROI)
 }
 
 //vector<Vec3f> houghTrack(Mat eyeROI)
-void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool manual, int eyeNum)
+void houghTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, bool manual, int eyeNum)
 {
     if(eyeNum > 1) return;
+
+    Mat eyeROI = allEyes.getROI(eyeNum);
 
     Mat combined;
     Mat thresh(eyeROI.cols, eyeROI.rows, CV_64F);
@@ -219,7 +221,8 @@ void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool man
     }
     if(maxIndex == -1)
     {
-        imshow("eye " + to_string(eyeNum), combined);
+//        allEyes.addProcessImage(combined, eyeNum);
+//        imshow("eye " + to_string(eyeNum), combined);
         return;
     }
 
@@ -233,7 +236,8 @@ void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool man
     circle(eyeROI, maxCentre, 1, Scalar(255,255,255), 1, 8, 0);
     hconcat(combined, eyeROI, combined);
 
-    imshow("eye " + to_string(eyeNum), combined);
+    allEyes.addProcessImage(combined, eyeNum);
+//    imshow("eye " + to_string(eyeNum), combined);
     if(kDebugging)
     {
         imwrite(debugDir + "processEye" + to_string(eyeNum) + ".jpg", combined);
