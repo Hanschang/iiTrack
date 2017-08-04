@@ -25,7 +25,7 @@ Mat calcGradient(const Mat &input, const bool isVertical);
 Mat calcMag(const Mat &xGrad, const Mat &yGrad);
 void calcDif(int x, int y,const cv::Mat &weight,double gx, double gy, cv::Mat &out);
 vector<double> findDispVec(int x0, int y0, int x1, int y1);
-Point trackEyeCenter(Mat eyeROI);
+Point gradientTrack(Mat eyeROI);
 
 
 //vector<Vec3f> houghTrack(Mat eyeROI);

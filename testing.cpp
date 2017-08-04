@@ -6,7 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdio.h>
-#include "tracking.h"
+#include "centerTracking.h"
 
 using namespace std;
 using namespace cv;
@@ -22,22 +22,27 @@ CascadeClassifier eyes_cascade;
 string window_name = "Capture - Face detection";
 bool debugging = 1;
 
+vector<double> means(3);
+int minThresh;
+
 /** @function main */
 int main( int argc, const char** argv )
 {
+    ofstream data("data.csv");
+    data << "Average Intensity,Threshold Percentage\n";
+
     // Load haar cascade
     if( !face_cascade.load( face_cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
     if( !eyes_cascade.load( eyes_cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
     // Trackbar for the minimum threshold value
-    int minThresh;
     int slider_max = 100;
     namedWindow(window_name,1);
     string sliderName = "minThresh";
     createTrackbar( sliderName, window_name, &minThresh, slider_max);
 
     // Start and end ID in the BioID database
-    int start = 1498;
+    int start = 1007;
     int end = 1600;
     int curr = start;
 
@@ -51,10 +56,33 @@ int main( int argc, const char** argv )
         {
             if(curr < end) curr++;
         }
-        if((char)c == 'a')
+        else if((char)c == 'a')
         {
             if(curr > start) curr--;
         }
+        else if((char)c == 'q') minThresh--;
+        else if((char)c == 'e') minThresh++;
+        else if((char)c == '1')
+        {
+            std::cout << "Writing..." << means[0] << "," << minThresh << "\n";
+            data << means[0] << "," << minThresh << "\n";
+        }
+        else if((char)c == '2')
+        {
+            std::cout << "Writing..." << means[1] << "," << minThresh << "\n";
+            data << means[1] << "," << minThresh << "\n";
+        }
+        else if((char)c == '3')
+        {
+            std::cout << "Writing..." << means[2] << "," << minThresh << "\n";
+            data << means[2] << "," << minThresh << "\n";
+        }
+        else if((char)c == 'p')
+        {
+            data.close();
+            break;
+        }
+        std::cout << c << std::endl;
     }
 
     return 0;
@@ -71,6 +99,7 @@ void testFace(int imgID, int minThresh)
     // Initialize videocapture and the frame it reads into
 //    VideoCapture capture(0);
     string fileName = Biodir + "BioID_" + to_string(imgID);
+
     Mat frame = imread(fileName + ".pgm");
 
     string buffer;
@@ -100,7 +129,6 @@ void testFace(int imgID, int minThresh)
 
         // Use haar cascade to detect potential faces
         face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE|CV_HAAR_FIND_BIGGEST_OBJECT, cv::Size(40, 40) );
-
 
         Mat faceROI;
         vector<Rect> actualEyes;
@@ -136,6 +164,7 @@ void testFace(int imgID, int minThresh)
                 actualEyes.push_back(eyes[i]);
 
                 Scalar mean = cv::mean(eyeROI);
+                means[i] = mean[0];
                 std::cout << "Average: " << mean[0] << "\t";
 
                 Point Contourcenter;
@@ -145,6 +174,7 @@ void testFace(int imgID, int minThresh)
                 if(Contourcenter.x > 0 || Contourcenter.y > 0)
                 {
                     Point adjustedCenter(Contourcenter.x + eyes[i].x + faces[0].x, Contourcenter.y + eyes[i].y + faces[0].y);
+//                    centers[i] = adjustedCenter;
                     std::cout << "C: (" << adjustedCenter.x << "," << adjustedCenter.y << ")" << std::endl;
                     //                        circle(frame, adjustedCenter, radius, Scalar(0,255,0), 1, 8 ,0);
                     circle(frame, adjustedCenter, 1, Scalar(0,0,255), 1, 8 ,0);

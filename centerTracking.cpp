@@ -6,7 +6,7 @@
 //
 //
 
-#include "tracking.h"
+#include "centerTracking.h"
 #include "util.h"
 
 
@@ -64,10 +64,6 @@ void calcDif(int x, int y, const cv::Mat &weight, double gradX, double gradY, Ma
         for(int j = 0; j < output.cols; j++)
         {
             if(i == x && j == y) continue;
-//            vector<double> displacement  = findDispVec(i, j, x, y);
-//            vector<double> displacement(2);
-
-//            vector<double> disp(2);
 
             double displacementX = x - i;
             double displacementY = y - j;
@@ -99,7 +95,7 @@ vector<double> findDispVec(int x0, int y0, int x1, int y1)
     return disp;
 }
 
-Point trackEyeCenter(Mat eyeROI)
+Point gradientTrack(Mat eyeROI)
 //Point trackEyeCenter(Mat eyeROI)
 {
     // Calculate the x and y gradient
@@ -141,8 +137,6 @@ Point trackEyeCenter(Mat eyeROI)
             }
         }
     }
-//    imshow("normXGrad", xGrad);
-//    imshow("normYGrad", yGrad);
 
     Mat weight;
     GaussianBlur( eyeROI, weight, cv::Size( 5, 5 ), 0, 0 );
@@ -169,11 +163,8 @@ Point trackEyeCenter(Mat eyeROI)
         }
     }
 
-//    Point center = minMaxLoc(result, NULL, NULL, NULL, center)
     Point center;
     minMaxLoc(result, NULL, NULL, NULL, &center);
-//    std::cout << "Center: " << center.x << "," << center.y << std::endl;
-
 
     return center;
 }
@@ -192,13 +183,17 @@ void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool man
     //set threshold value to half of that
     Scalar eyeMean = mean(eyeROI);
     int threshhold = eyeMean[0] * kTreshFactor;
+    if(kManualThresh)
+    {
+        threshhold = eyeMean[0] * minThresh/100;
+    }
 
     threshold(eyeROI, thresh, threshhold, 255, THRESH_BINARY);
     hconcat(eyeROI, thresh, combined);
 
-    Mat element = getStructuringElement( MORPH_RECT, Size( 5,5 ) );
-    morphologyEx(thresh, thresh, MORPH_OPEN, element);
+    Mat element = getStructuringElement( MORPH_RECT, Size(kStructElementSize, kStructElementSize) );
     morphologyEx(thresh, thresh, MORPH_CLOSE, element);
+    morphologyEx(thresh, thresh, MORPH_OPEN, element);
     hconcat(combined, thresh, combined);
 
     findContours(thresh, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
@@ -222,7 +217,11 @@ void houghTrack(Mat eyeROI, Point &center, double &MaxR, int minThresh, bool man
         }
 
     }
-    if(maxIndex == -1) return;
+    if(maxIndex == -1)
+    {
+        imshow("eye " + to_string(eyeNum), combined);
+        return;
+    }
 
     Mat contourEye;
     eyeROI.copyTo(contourEye);

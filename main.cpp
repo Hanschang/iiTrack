@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "centerTracking.h"
 #include "constants.h"
-#include "cornerTracking.h"
+#include "eyeList.h"
 
 using namespace std;
 using namespace cv;
@@ -25,6 +25,7 @@ int main( int argc, const char** argv )
 
     // Initialize videocapture and the frame it reads into
     VideoCapture capture(0);
+//    HWND hwndDesktop = GetDesktopWindow();
     Mat frame;
 
     // Load haar cascade
@@ -54,9 +55,9 @@ int main( int argc, const char** argv )
         {
             std::vector<cv::Rect> faces;
             std::vector<Rect> eyes;
-            std::vector<cv::Mat> rgbChannels(3);
-            cv::split(frame, rgbChannels);
-            cv::Mat frame_gray = rgbChannels[2];
+
+            Mat frame_gray;
+            cvtColor(frame, frame_gray, CV_BGR2GRAY);
 
             // Use haar cascade to detect potential faces
             face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE|CV_HAAR_FIND_BIGGEST_OBJECT, cv::Size(150, 150) );
@@ -70,17 +71,15 @@ int main( int argc, const char** argv )
                 faceROI = frame_gray(faces[0]);
                 if(kDebugging) imwrite(debugDir + "face.jpg", faceROI);
 
-                if(!kTrackCorner)
-                {
-                    GaussianBlur(faceROI, faceROI, Size(0,0), faceROI.cols * 0.005);
-                    if(kDebugging) imwrite(debugDir + "faceGaussian.jpg", faceROI);
-                }
 
+                GaussianBlur(faceROI, faceROI, Size(0,0), faceROI.cols * 0.005);
+                if(kDebugging) imwrite(debugDir + "faceGaussian.jpg", faceROI);
 
                 eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(40, 40) );
 
-//                std::cout << eyes.size() << std::endl;
                 // Go through potential eyes
+                actualEyes.resize(eyes.size());
+                
                 for(int i = 0; i < eyes.size(); i++)
                 {
                     // If the top left corner of the "eye" is below 0.4 of the face, then it is definitely
@@ -92,33 +91,25 @@ int main( int argc, const char** argv )
                     Rect smallEye(eyes[i].x + eyes[i].width * 0.05, eyes[i].y + eyes[i].height * 0.15, 0.9 * eyes[i].width, 0.7 * eyes[i].height);
                     Mat eyeROI = faceROI(smallEye);
                     Mat bigEyeROI = faceROI(eyes[i]);
-
-                    actualEyes.push_back(smallEye);
+                    actualEyes[i] = smallEye;
 
                     if(kDebugging) imwrite(debugDir + "eye" + to_string(i) + ".jpg", eyeROI);
 
-                    // Corner tracking function
-                    if(kTrackCorner)
-                    {
-                        cornerTrack(bigEyeROI);
-                    }
-
-                    eyes[i] = smallEye;
 
                     // Get the center point using trackEyeCenter method, then change it to be in context of the whole frame.
-                    Point faceCenter;
+                    Point gradientCenter;
                     if(kCalcGradient | kCalcAverage)
                     {
-                        Point center = trackEyeCenter(eyeROI);
-                        faceCenter = Point(faces[0].x + eyes[i].x + center.x, faces[0].y + eyes[i].y + center.y);
-                        circle(frame, faceCenter, 1.5, Scalar(0, 255, 0), 1, 8, 0);
+                        Point center = gradientTrack(eyeROI);
+                        gradientCenter = Point(faces[0].x + actualEyes[i].x + center.x, faces[0].y + actualEyes[i].y + center.y);
+                        circle(frame, gradientCenter, 1.5, Scalar(0, 255, 0), 1, 8, 0);
                     }
 
                     Point Contourcenter(0,0);
                     if(kCalcContour | kCalcAverage)
                     {
                         double radius = 0;
-                        houghTrack(eyeROI, Contourcenter, radius, NULL, 0, i);
+                        houghTrack(eyeROI, Contourcenter, radius, 60, 0, i);
 
                         if(Contourcenter.x > 0 || Contourcenter.y > 0)
                         {
@@ -128,13 +119,13 @@ int main( int argc, const char** argv )
                                 Mat coloredEye = coloredFace(eyes[i]);
                                 Mat debugEye;
                                 coloredEye.copyTo(debugEye);
-                                circle(debugEye, Contourcenter, 1, Scalar(0,0,255), 1, 8, 0);
+                                circle(debugEye, Contourcenter, 2, Scalar(0,0,255), 1, 8, 0);
                                 circle(debugEye, Contourcenter, radius, Scalar(0,0,255), 1, 8, 0);
                                 imwrite(debugDir + "eyeResult" + to_string(i) + ".jpg", debugEye);
                             }
 
-                            Contourcenter.x  = Contourcenter.x + eyes[i].x + faces[0].x;
-                            Contourcenter.y = Contourcenter.y + eyes[i].y + faces[0].y;
+                            Contourcenter.x  = Contourcenter.x + actualEyes[i].x + faces[0].x;
+                            Contourcenter.y = Contourcenter.y + actualEyes[i].y + faces[0].y;
 
                             circle(frame, Contourcenter, 1, Scalar(0,0,255), 1, 8 ,0);
                             if(kShowOutline)
@@ -146,11 +137,11 @@ int main( int argc, const char** argv )
 
                     if(kCalcAverage)
                     {
-                        Point avgCenter(faceCenter.x, faceCenter.y);
+                        Point avgCenter(gradientCenter.x, gradientCenter.y);
                         if(Contourcenter.x > 0 || Contourcenter.y > 0)
                         {
-                            avgCenter.x = (faceCenter.x + Contourcenter.x) / 2;
-                            avgCenter.y= (faceCenter.y + Contourcenter.y) / 2;
+                            avgCenter.x = (gradientCenter.x + Contourcenter.x) / 2;
+                            avgCenter.y= (gradientCenter.y + Contourcenter.y) / 2;
                         }
                         circle(frame, avgCenter, 1, Scalar(0,255,255), 1, 8 ,0);
                     }
