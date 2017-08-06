@@ -30,7 +30,7 @@ Point gradientTrack(Mat eyeROI);
 
 
 //vector<Vec3f> houghTrack(Mat eyeROI);
-void  houghTrack(eyeList& allEyes, Point &center, double &radius, int minThresh, bool manual, int index);
+void  houghTrack(eyeList& allEyes, Point &center, double &radius, int minThresh, bool isTest, int index);
 
 //cv::Mat matrixMagnitude(const cv::Mat &matX, const cv::Mat &matY);
 #endif /* defined(____tracking__) */

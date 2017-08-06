@@ -170,7 +170,7 @@ Point gradientTrack(Mat eyeROI)
 }
 
 //vector<Vec3f> houghTrack(Mat eyeROI)
-void houghTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, bool manual, int eyeNum)
+void houghTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, bool isTest, int eyeNum)
 {
     if(eyeNum > 1) return;
 
@@ -184,10 +184,11 @@ void houghTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, bo
     // Calculate the mean intensity of the eyeROI
     //set threshold value to half of that
     Scalar eyeMean = mean(eyeROI);
-    int threshhold = eyeMean[0] * kTreshFactor;
-    if(kManualThresh)
+//    int threshhold = eyeMean[0] * kTreshFactor;
+    int threshhold = eyeMean[0] * minThresh/100;
+    if(!isTest)
     {
-        threshhold = eyeMean[0] * minThresh/100;
+        threshhold = eyeMean[0] * (50 + minThresh) / 100;
     }
 
     threshold(eyeROI, thresh, threshhold, 255, THRESH_BINARY);

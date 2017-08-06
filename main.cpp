@@ -27,12 +27,15 @@ int main( int argc, const char** argv )
 
     // Initialize videocapture and the frame it reads into
     VideoCapture capture(0);
-//    HWND hwndDesktop = GetDesktopWindow();
     Mat frame;
 
     // Load haar cascade
     if( !face_cascade.load( face_cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
     if( !eyes_cascade.load( eyes_cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
+
+    namedWindow(window_name,1);
+    int trackbarPos = 10;
+    createTrackbar("Adjustment: ", window_name, &trackbarPos, 20);
 
     // For 480p, comment out the below lines for 720p video
     //(will slow down the program)
@@ -41,8 +44,6 @@ int main( int argc, const char** argv )
         capture.set(CV_CAP_PROP_FRAME_WIDTH, 640);
         capture.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
     }
-
-    namedWindow(window_name,1);
 
     // If camera opened successfully
     if( ! capture.isOpened() ) return -1;
@@ -83,7 +84,7 @@ int main( int argc, const char** argv )
             if(kCalcContour | kCalcAverage)
             {
                 double radius = 0;
-                houghTrack(allEyes, Contourcenter, radius, 60, 0, i);
+                houghTrack(allEyes, Contourcenter, radius, trackbarPos, 0, i);
 
                 if(Contourcenter.x > 0 || Contourcenter.y > 0)
                 {
