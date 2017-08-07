@@ -169,8 +169,8 @@ Point gradientTrack(Mat eyeROI)
     return center;
 }
 
-//vector<Vec3f> houghTrack(Mat eyeROI)
-void houghTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, int eyeNum)
+//vector<Vec3f> contourTrack(Mat eyeROI)
+void contourTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, int eyeNum)
 {
     if(eyeNum > 1) return;
 

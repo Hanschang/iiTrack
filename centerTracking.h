@@ -29,8 +29,8 @@ vector<double> findDispVec(int x0, int y0, int x1, int y1);
 Point gradientTrack(Mat eyeROI);
 
 
-//vector<Vec3f> houghTrack(Mat eyeROI);
-void  houghTrack(eyeList& allEyes, Point &center, double &radius, int minThresh, int index);
+//vector<Vec3f> contourTrack(Mat eyeROI);
+void  contourTrack(eyeList& allEyes, Point &center, double &radius, int minThresh, int index);
 
 //cv::Mat matrixMagnitude(const cv::Mat &matX, const cv::Mat &matY);
 #endif /* defined(____tracking__) */
