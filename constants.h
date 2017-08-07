@@ -14,18 +14,16 @@
 
 // Toggle for tracking methods
 const bool kCalcGradient = 0;
-const bool kCalcContour = 0;
+const bool kCalcContour = 1;
 const bool kCalcAverage = 0;
 const bool kShowOutline = 0;
 
-// Toggle for corner tracking
-const bool kTrackCorner = 1;
-
 // Contant used to determine the minimum threshold value
-const double kTreshFactor = 0.6;
+const double kStructElementSize = 5;
 
 // Set to true if debugging
-const bool kDebugging = 1;
+const bool kDebugging = 0;
+const bool kManualThresh = 0;
 
 // Set to 1 for HD, Set to 0 for SD
 const bool kisHighDef = 0;
