@@ -19,7 +19,7 @@ void resize(Mat& input);
 CascadeClassifier face_cascade;
 CascadeClassifier eyes_cascade;
 string window_name = "Capture - Face detection";
-
+int trackbarPos = 15;
 
 /** @function main */
 int main( int argc, const char** argv )
@@ -34,8 +34,7 @@ int main( int argc, const char** argv )
     if( !eyes_cascade.load( eyes_cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
     namedWindow(window_name,1);
-    int trackbarPos = 10;
-    createTrackbar("Adjustment: ", window_name, &trackbarPos, 20);
+    createTrackbar("Adjustment: ", window_name, &trackbarPos, 30);
 
     // For 480p, comment out the below lines for 720p video
     //(will slow down the program)
@@ -84,7 +83,7 @@ int main( int argc, const char** argv )
             if(kCalcContour | kCalcAverage)
             {
                 double radius = 0;
-                houghTrack(allEyes, Contourcenter, radius, trackbarPos, 0, i);
+                houghTrack(allEyes, Contourcenter, radius, 45 + trackbarPos, i);
 
                 if(Contourcenter.x > 0 || Contourcenter.y > 0)
                 {
@@ -173,6 +172,11 @@ void display(Mat frame, Rect& face, eyeList& allEyes, bool noFace)
     Mat concatImage(1, 1, CV_8UC3, Scalar(0,0,0));
     if (kisHighDef) resize(concatImage, concatImage, Size(1080,102));
     else resize(concatImage, concatImage, Size(640,60));
+
+    string text = to_string(45 + trackbarPos) + "%";
+    Size textSize = getTextSize(text, FONT_HERSHEY_PLAIN, 1, 1, NULL);
+    rectangle(frame, Point(8,22), Point(12 + textSize.width, 18 - textSize.height), Scalar(0), CV_FILLED);
+    putText(frame, text, Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(255, 255, 255));
 
     if(noFace)
     {
