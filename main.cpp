@@ -47,10 +47,15 @@ int main( int argc, const char** argv )
     // If camera opened successfully
     if( ! capture.isOpened() ) return -1;
 
+    Mat copyFrame;
+    bool reCalc = 0;
     while( true )
     {
         // Capture the frame
-        capture >> frame;
+        if(reCalc) copyFrame.copyTo(frame);
+        else capture >> frame;
+        frame.copyTo(copyFrame);
+        reCalc = 0;
         if(kDebugging) imwrite(debugDir + "capture.jpg", frame);
 
         if(frame.empty()) { printf(" --(!) No captured frame -- Break!");  continue;}
@@ -83,7 +88,7 @@ int main( int argc, const char** argv )
             if(kCalcContour | kCalcAverage)
             {
                 double radius = 0;
-                houghTrack(allEyes, Contourcenter, radius, 45 + trackbarPos, i);
+                contourTrack(allEyes, Contourcenter, radius, 45 + trackbarPos, i);
 
                 if(Contourcenter.x > 0 || Contourcenter.y > 0)
                 {
@@ -117,7 +122,8 @@ int main( int argc, const char** argv )
         if(kDebugging)
         {
             imwrite(debugDir + "frame.jpg", frame);
-            waitKey(0);
+            int c = waitKey(0);
+            if((char)c == 'c') reCalc = 1;
         }
         else
         {
