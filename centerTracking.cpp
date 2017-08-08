@@ -215,6 +215,9 @@ void contourTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, 
     }
     if(maxIndex == -1)
     {
+        Mat blackSpace(eyeROI.rows, eyeROI.cols, CV_8UC1, Scalar(0,0,0));
+        hconcat(combined, blackSpace, combined);
+        allEyes.addProcessImage(combined, eyeNum);
         return;
     }
 
