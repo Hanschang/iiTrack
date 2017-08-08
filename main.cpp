@@ -12,6 +12,7 @@ using namespace cv;
 
 /** Function Headers */
 void display(Mat frame, Rect& face, eyeList& allEyes, bool noFace);
+void findCenter(Mat frame, Rect& face, eyeList& allEyes);
 bool detectEyes(Mat frame, eyeList& eyes, Rect& face);
 void resize(Mat& input);
 
@@ -19,7 +20,7 @@ void resize(Mat& input);
 CascadeClassifier face_cascade;
 CascadeClassifier eyes_cascade;
 string window_name = "Capture - Face detection";
-int trackbarPos = 15;
+int trackbarPos = 20;
 
 /** @function main */
 int main( int argc, const char** argv )
@@ -34,7 +35,7 @@ int main( int argc, const char** argv )
     if( !eyes_cascade.load( eyes_cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
     namedWindow(window_name,1);
-    createTrackbar("Adjustment: ", window_name, &trackbarPos, 30);
+    createTrackbar("Adjustment: ", window_name, &trackbarPos, 40);
 
     // For 480p, comment out the below lines for 720p video
     //(will slow down the program)
@@ -47,22 +48,19 @@ int main( int argc, const char** argv )
     // If camera opened successfully
     if( ! capture.isOpened() ) return -1;
 
-    Mat copyFrame;
-    bool reCalc = 0;
+    capture >> frame;
+    Mat frameCpy;
+    bool stopped = 0;
     while( true )
     {
         // Capture the frame
-        if(reCalc) copyFrame.copyTo(frame);
-        else capture >> frame;
-        frame.copyTo(copyFrame);
-        reCalc = 0;
         if(kDebugging) imwrite(debugDir + "capture.jpg", frame);
-
         if(frame.empty()) { printf(" --(!) No captured frame -- Break!");  continue;}
-
         Mat frame_gray;
         eyeList allEyes;
         Rect face;
+
+        frame.copyTo(frameCpy);
 
         cvtColor(frame, frame_gray, CV_BGR2GRAY);
 
@@ -70,52 +68,11 @@ int main( int argc, const char** argv )
         {
             display(frame, face, allEyes, 1);
             waitKey(1);
+            capture >> frame;
             continue;
         }
 
-        for(int i = 0; i < allEyes.getSize(); i++)
-        {
-            Point gradientCenter;
-            if(kCalcGradient | kCalcAverage)
-            {
-                Mat eyeROI = allEyes.getROI(i);
-                Point center = gradientTrack(eyeROI);
-                gradientCenter = Point(face.x + allEyes.getX(i) + center.x, face.y + allEyes.getY(i) + center.y);
-                circle(frame, gradientCenter, 1.5, Scalar(0, 255, 0), 1, 8, 0);
-            }
-            
-            Point Contourcenter(0,0);
-            if(kCalcContour | kCalcAverage)
-            {
-                double radius = 0;
-                contourTrack(allEyes, Contourcenter, radius, 35 + trackbarPos, i);
-
-                if(Contourcenter.x > 0 || Contourcenter.y > 0)
-                {
-
-                    Contourcenter.x  = Contourcenter.x + allEyes.getX(i) + face.x;
-                    Contourcenter.y = Contourcenter.y + allEyes.getY(i) + face.y;
-
-                    circle(frame, Contourcenter, 1, Scalar(0,0,255), 1, 8 ,0);
-                    if(kShowOutline)
-                    {
-                        circle(frame, Contourcenter, radius, Scalar(0,0,255), 1, 8, 0);
-                    }
-                }
-            }
-
-            if(kCalcAverage)
-            {
-                Point avgCenter(gradientCenter.x, gradientCenter.y);
-                if(Contourcenter.x > 0 || Contourcenter.y > 0)
-                {
-                    avgCenter.x = (gradientCenter.x + Contourcenter.x) / 2;
-                    avgCenter.y= (gradientCenter.y + Contourcenter.y) / 2;
-                }
-                circle(frame, avgCenter, 1, Scalar(0,255,255), 1, 8 ,0);
-            }
-        }
-
+        findCenter(frame, face, allEyes);
         display(frame, face, allEyes, 0);
 
         // Pause or continue with capture depending on mode
@@ -123,12 +80,31 @@ int main( int argc, const char** argv )
         {
             imwrite(debugDir + "frame.jpg", frame);
             int c = waitKey(0);
-            if((char)c == 'c') reCalc = 1;
+            if((char)c == 'c')
+            {
+                frameCpy.copyTo(frame);
+                continue;
+            }
+            capture >> frame;
         }
         else
         {
-            int c = waitKey(1);
-            if((char)c == 'c') waitKey(0);
+            if(!stopped)
+            {
+                int c = waitKey(1);
+                if((char)c == 'c') stopped = 1;
+            }
+            if(stopped)
+            {
+                int c = waitKey(0);
+                if((char)c == 'c')
+                {
+                    frameCpy.copyTo(frame);
+                    continue;
+                }
+            }
+            capture >> frame;
+            stopped = 0;
         }
     }
 
@@ -174,6 +150,53 @@ bool detectEyes(Mat frame_gray_, eyeList& allEyes_, Rect& face_)
     return 1;
 }
 
+void findCenter(Mat frame, Rect& face, eyeList& allEyes)
+{
+    for(int i = 0; i < allEyes.getSize(); i++)
+    {
+        Point gradientCenter;
+        if(kCalcGradient | kCalcAverage)
+        {
+            Mat eyeROI = allEyes.getROI(i);
+            Point center = gradientTrack(eyeROI);
+            gradientCenter = Point(face.x + allEyes.getX(i) + center.x, face.y + allEyes.getY(i) + center.y);
+            circle(frame, gradientCenter, 1.5, Scalar(0, 255, 0), 1, 8, 0);
+        }
+
+        Point Contourcenter(0,0);
+        if(kCalcContour | kCalcAverage)
+        {
+            double radius = 0;
+            contourTrack(allEyes, Contourcenter, radius, 30 + trackbarPos, i);
+
+            if(Contourcenter.x > 0 || Contourcenter.y > 0)
+            {
+
+                Contourcenter.x  = Contourcenter.x + allEyes.getX(i) + face.x;
+                Contourcenter.y = Contourcenter.y + allEyes.getY(i) + face.y;
+
+                circle(frame, Contourcenter, 1, Scalar(0,0,255), 1, 8 ,0);
+                if(kShowOutline)
+                {
+                    circle(frame, Contourcenter, radius, Scalar(0,0,255), 1, 8, 0);
+                }
+            }
+        }
+
+        if(kCalcAverage)
+        {
+            Point avgCenter(gradientCenter.x, gradientCenter.y);
+            if(Contourcenter.x > 0 || Contourcenter.y > 0)
+            {
+                avgCenter.x = (gradientCenter.x + Contourcenter.x) / 2;
+                avgCenter.y= (gradientCenter.y + Contourcenter.y) / 2;
+            }
+            circle(frame, avgCenter, 1, Scalar(0,255,255), 1, 8 ,0);
+        }
+    }
+
+}
+
 
 // Function display
 void display(Mat frame, Rect& face, eyeList& allEyes, bool noFace)
@@ -182,7 +205,7 @@ void display(Mat frame, Rect& face, eyeList& allEyes, bool noFace)
     if (kisHighDef) resize(concatImage, concatImage, Size(1080,102));
     else resize(concatImage, concatImage, Size(640,60));
 
-    string text = to_string(35 + trackbarPos) + "%";
+    string text = to_string(30 + trackbarPos) + "%";
     Size textSize = getTextSize(text, FONT_HERSHEY_PLAIN, 1, 1, NULL);
     rectangle(frame, Point(8,22), Point(12 + textSize.width, 18 - textSize.height), Scalar(0), CV_FILLED);
     putText(frame, text, Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(255, 255, 255));
