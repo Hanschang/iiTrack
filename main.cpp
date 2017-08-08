@@ -88,7 +88,7 @@ int main( int argc, const char** argv )
             if(kCalcContour | kCalcAverage)
             {
                 double radius = 0;
-                contourTrack(allEyes, Contourcenter, radius, 45 + trackbarPos, i);
+                contourTrack(allEyes, Contourcenter, radius, 35 + trackbarPos, i);
 
                 if(Contourcenter.x > 0 || Contourcenter.y > 0)
                 {
@@ -158,9 +158,12 @@ bool detectEyes(Mat frame_gray_, eyeList& allEyes_, Rect& face_)
 //            if(i > 1) break;
 
             // Create a smaller rectangle for more accurate eye center detection
-            Rect smallEye(eyes[i].x + eyes[i].width * 0.05, eyes[i].y + eyes[i].height * 0.15, 0.9 * eyes[i].width, 0.7 * eyes[i].height);
+            Rect smallEye(eyes[i].x, eyes[i].y + eyes[i].height * 0.15, eyes[i].width, 0.7 * eyes[i].height);
             Mat eyeROI = faceROI(smallEye);
             allEyes_.addEye(eyeROI, smallEye);
+
+//            Mat eyeROI = faceROI(eyes[i]);
+//            allEyes_.addEye(eyeROI, eyes[i]);
             if(kDebugging) imwrite(debugDir + "eye" + to_string(i) + ".jpg", eyeROI);
 
         }
@@ -179,7 +182,7 @@ void display(Mat frame, Rect& face, eyeList& allEyes, bool noFace)
     if (kisHighDef) resize(concatImage, concatImage, Size(1080,102));
     else resize(concatImage, concatImage, Size(640,60));
 
-    string text = to_string(45 + trackbarPos) + "%";
+    string text = to_string(35 + trackbarPos) + "%";
     Size textSize = getTextSize(text, FONT_HERSHEY_PLAIN, 1, 1, NULL);
     rectangle(frame, Point(8,22), Point(12 + textSize.width, 18 - textSize.height), Scalar(0), CV_FILLED);
     putText(frame, text, Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(255, 255, 255));

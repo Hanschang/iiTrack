@@ -102,9 +102,6 @@ Point gradientTrack(Mat eyeROI)
     Mat xGrad = calcGradient(eyeROI,0);
     Mat yGrad = calcGradient(eyeROI.t(), 1);
 
-    // Debugging purpose
-//    imshow("xGrad", xGrad);
-//    imshow("yGrad", yGrad);
 
     // Calculate the Magnitude
     Mat magnitude = calcMag(xGrad, yGrad);
@@ -207,7 +204,7 @@ void contourTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, 
         vector<Point> closed_contour;
         approxPolyDP(contours[i], closed_contour, 3, true);
         minEnclosingCircle(closed_contour, centre, radius);
-        if(radius > 0.5 * eyeROI.rows) continue;
+        if(radius >= 0.5 * eyeROI.cols) continue;
         if(radius > maxRadius)
         {
             maxCentre = centre;
@@ -218,8 +215,6 @@ void contourTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, 
     }
     if(maxIndex == -1)
     {
-//        allEyes.addProcessImage(combined, eyeNum);
-//        imshow("eye " + to_string(eyeNum), combined);
         return;
     }
 
