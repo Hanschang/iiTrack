@@ -166,13 +166,19 @@ Point gradientTrack(Mat eyeROI)
     return center;
 }
 
-//vector<Vec3f> contourTrack(Mat eyeROI)
+// Find the eye center with a 5 step process
+// The function should find the center of the eye, and
+// Save all the processing images into the eyeList container
 void contourTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, int eyeNum)
 {
+    // There shouldn't be more than 2 eyes being processed on any given frame
     if(eyeNum > 1) return;
 
+    // Get the ROI
     Mat eyeROI = allEyes.getROI(eyeNum);
 
+    // Initialize Mat that will hold all the processing images for this eye
+    //as well as all intermediate images
     Mat combined;
     Mat thresh(eyeROI.cols, eyeROI.rows, CV_64F);
     vector<vector<Point>> contours;
@@ -181,30 +187,43 @@ void contourTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, 
     // Calculate the mean intensity of the eyeROI
     //set threshold value to half of that
     Scalar eyeMean = mean(eyeROI);
-//    int threshhold = eyeMean[0] * kTreshFactor;
     int threshhold = eyeMean[0] * minThresh/100;
 
+    // filter out all pixels greater than the threshold value
     threshold(eyeROI, thresh, threshhold, 255, THRESH_BINARY);
+    // Add the resulting image into the combined Mat
     hconcat(eyeROI, thresh, combined);
 
+    // Morphological closing and opening to get rid of holes and bumps
     Mat element = getStructuringElement( MORPH_RECT, Size(kStructElementSize, kStructElementSize) );
     morphologyEx(thresh, thresh, MORPH_CLOSE, element);
     morphologyEx(thresh, thresh, MORPH_OPEN, element);
+    // Add the image to combined mat
     hconcat(combined, thresh, combined);
 
+    // Find all the contours in the region
     findContours(thresh, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 
+    // variables to hold center of the eye
     Point2f centre;
     float radius;
     int maxIndex = -1;
     int maxRadius = 0;
     Point maxCentre;
+    // Loop through all the contours
     for(int i = 0 ; i < contours.size(); i++)
     {
+        // For each contour, if its disconnected, use approxPolyDP to close it,
+        //then find the minimally enclosing circle
         vector<Point> closed_contour;
         approxPolyDP(contours[i], closed_contour, 3, true);
         minEnclosingCircle(closed_contour, centre, radius);
+
+        // If the circle is bigger than the ROI region, then it's most likely
+        //not the iris, reject it
         if(radius >= 0.5 * eyeROI.cols) continue;
+
+        // If valid circle, check to see if its the biggest, if so update the values
         if(radius > maxRadius)
         {
             maxCentre = centre;
@@ -213,6 +232,8 @@ void contourTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, 
         }
 
     }
+    // If no valid circles are found, then add the precessing images to eyeList container
+    // and return
     if(maxIndex == -1)
     {
         Mat blackSpace(eyeROI.rows, eyeROI.cols, CV_8UC1, Scalar(0,0,0));
@@ -221,6 +242,8 @@ void contourTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, 
         return;
     }
 
+    // Draw the detected contours and minimally enclosing circles, add them to
+    //the procssing images
     Mat contourEye;
     eyeROI.copyTo(contourEye);
     drawContours(contourEye, contours, maxIndex, Scalar(255,255,255), 1, 8);
@@ -231,13 +254,15 @@ void contourTrack(eyeList& allEyes, Point &center, double &MaxR, int minThresh, 
     circle(eyeROI, maxCentre, 1, Scalar(255,255,255), 1, 8, 0);
     hconcat(combined, eyeROI, combined);
 
+    // add the processing image to the eyeList contianer
     allEyes.addProcessImage(combined, eyeNum);
-//    imshow("eye " + to_string(eyeNum), combined);
     if(kDebugging)
     {
         imwrite(debugDir + "processEye" + to_string(eyeNum) + ".jpg", combined);
     }
 
+    // Set the center and radius of the minimally enclosing circle,
+    //maxCentre is the detected eye center
     MaxR = maxRadius;
     center = maxCentre;
 
