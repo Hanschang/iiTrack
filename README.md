@@ -24,15 +24,15 @@ There are a couple things to set up first. In constants.h, make sure the path to
 There are two "modes" of this program. One uses webcam, the other using the BioID database. To choose modes, simply add the respective files (main.cpp for normal, testing.cpp for BIOID) into the XCode/VS project folder. DO NOT include both at the same time.
 
 THe controls for the normal mode is as follows:
-+C: Pause video
-+Q: Quit program
-+Any other key: unpause when paused
++ C: Pause video
++ Q: Quit program
++ Any other key: unpause when paused
 
 The controls for testing mode is as follows:
-+A/D: Move backward/forward
-+C: Rerun with current image
-+P: Quit program
-+1/2: Write the respective eye data into a .xml file
++ A/D: Move backward/forward
++ C: Rerun with current image
++ P: Quit program
++ 1/2: Write the respective eye data into a .xml file
 
 For more information read the following sections on Main.cpp and Testing.cpp
 
