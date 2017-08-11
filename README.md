@@ -18,6 +18,24 @@ This method first use threshold to isolate the darkest parts of the eye (the iri
 
 Through testing, I found this method to be more stable and accurate than the Gradient method. However, it still has difficulty finding the eye center under extreme conditions such as very bright or very dark settings.
 
+## Using the program
+There are a couple things to set up first. In constants.h, make sure the path to all directories are properly set, or else the program will not read the cascade and BioID files. 
+
+There are two "modes" of this program. One uses webcam, the other using the BioID database. To choose modes, simply add the respective files (main.cpp for normal, testing.cpp for BIOID) into the XCode/VS project folder. DO NOT include both at the same time.
+
+THe controls for the normal mode is as follows:
+..*C: Pause video
+..*Q: Quit program
+..*Any other key: unpause when paused
+
+The controls for testing mode is as follows:
+..*A/D: Move backward/forward
+..*C: Rerun with current image
+..*P: Quit program
+..*1/2: Write the respective eye data into a .xml file
+
+For more information read the following sections on Main.cpp and Testing.cpp
+
 ## Main.cpp
 Opens up the default webcam on the computer/laptop. You can toggle different tracking methods (gradient, contour, or the average of the two), set file directories, and toggle debugging mode, in constants.h
 
@@ -25,9 +43,9 @@ The program shows the detected face region, eye region, and eye centers in the f
 
 Use the trackbar on the top to adjust the threshold percentage. The program calculates the minimum threshold value by first finding the average intensity around each eye region, then multiply the average by the threshold percentage set by the user. In a darker setting, lower threshold percentage should be used, and vice versa. 
 
-__normal mode: __ Continuously capture and process frames. You  can pause anytime by pressing the key 'c', and any key to unpause.
+Normal mode: Continuously capture and process frames. You  can pause anytime by pressing the key 'c', and any key to unpause.
 
-__debugging mode: __ Only captures single frame at a time. You  can move onto the next frame by pressing any key other than 'c'. Pressing 'c' will save all debugging images into the '/debug' directory (Can be changed in constants.h). It can also recalculate the eye centers if the user wants to test different threshold values on the same frame.
+debugging mode: Only captures single frame at a time. You  can move onto the next frame by pressing any key other than 'c'. Pressing 'c' will save all debugging images into the '/debug' directory (Can be changed in constants.h). It can also recalculate the eye centers if the user wants to test different threshold values on the same frame.
 
 ## Testing.cpp
 
