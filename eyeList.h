@@ -32,12 +32,18 @@ public:
     void addProcessImage(Mat processImage, int index);
 
     // Accessors for different variables in the container class
+    // Coordinates for the top left corner of the eye region
     int getX(int index);
     int getY(int index);
+    // Width and height of the eye region
     int getWidth(int index);
     int getHeight(int index);
+
+    // Get the Mat associated with the eye region
     Mat getROI(int index);
     Mat getProcessImage(int indeax);
+
+    // Return the size
     int getSize();
 
 private:

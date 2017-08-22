@@ -24,6 +24,10 @@ CascadeClassifier eyes_cascade;
 string window_name = "Capture - Face detection";
 // Trackbar position that will be used for thresholding
 int trackbarPos = 20;
+// Constant for video stream
+bool vidWrite = 0;
+// Constant for whether the video is paused
+bool stopped = 0;
 
 /** @function main */
 int main( int argc, const char** argv )
@@ -54,7 +58,7 @@ int main( int argc, const char** argv )
     // Capture the first frame
     capture >> frame;
     Mat frameCpy;
-    bool stopped = 0;
+
     while( true )
     {
         // Check first if frame is empty for not, move on to the next frame if empty
@@ -97,6 +101,7 @@ int main( int argc, const char** argv )
                 frameCpy.copyTo(frame);
                 continue;
             }
+            else if((char)c == 'q') return 0;
             // If any other key, move on to the next capture
             capture >> frame;
         }
@@ -109,6 +114,8 @@ int main( int argc, const char** argv )
             {
                 int c = waitKey(1);
                 if((char)c == 'c') stopped = 1;
+                else if ((char)c == 'w') vidWrite = !vidWrite;
+                else if ((char)c == 'q') return 0;
             }
 
             // If program is paused, stay paused as long as user keep
@@ -121,10 +128,14 @@ int main( int argc, const char** argv )
                     frameCpy.copyTo(frame);
                     continue;
                 }
+                else if ((char)c == 'w') vidWrite = !vidWrite;
+                else if ((char)c == 'q') return 0;
             }
             capture >> frame;
             stopped = 0;
         }
+
+        //Add escape for infinite loop
     }
 
     return 0;
@@ -150,6 +161,7 @@ bool detectEyes(Mat frame_gray_, eyeList& allEyes_, Rect& face_)
         if(kDebugging) imwrite(debugDir + "face.jpg", faceROI);
 
         // Apply Gaussian blur to smooth out the image
+        //The 0.005 comes from Tristum's blog (check README for reference)
         GaussianBlur(faceROI, faceROI, Size(0,0), faceROI.cols * 0.005);
         if(kDebugging) imwrite(debugDir + "faceGaussian.jpg", faceROI);
 
@@ -164,6 +176,7 @@ bool detectEyes(Mat frame_gray_, eyeList& allEyes_, Rect& face_)
             if(eyes[i].y > faceROI.rows * 0.4) continue;
 
             // Create a smaller rectangle for more accurate eye center detection
+            //Crop the top and bottom 15% of the eye region
             Rect smallEye(eyes[i].x, eyes[i].y + eyes[i].height * 0.15, eyes[i].width, 0.7 * eyes[i].height);
             Mat eyeROI = faceROI(smallEye);
             // Save the eye region into the eyeList container
@@ -257,6 +270,14 @@ void display(Mat frame, Rect& face, eyeList& allEyes, bool noFace)
     Size textSize = getTextSize(text, FONT_HERSHEY_PLAIN, 1, 1, NULL);
     rectangle(frame, Point(8,22), Point(12 + textSize.width, 18 - textSize.height), Scalar(0), CV_FILLED);
     putText(frame, text, Point(10,20), FONT_HERSHEY_PLAIN, 1, Scalar(255, 255, 255));
+
+    if(stopped)
+    {
+        int x = frame.cols;
+        int y = frame.rows;
+        rectangle(frame, Point(x- 5, y - 5), Point(x - 10, y - 15), Scalar(0,0,255), CV_FILLED);
+        rectangle(frame, Point(x - 15, y - 5), Point(x - 20, y - 15), Scalar(0,0,255), CV_FILLED);
+    }
 
     // If no face is detected, just add the previously created black Mat
     //on to the bottom of the screen and display, skip the rest since there's
